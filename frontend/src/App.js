@@ -1,66 +1,82 @@
-import { useState, useEffect } from 'react';
-import TaskForm from './components/TaskForm';
-import TaskList from './components/TaskList';
+import React, { useEffect, useMemo, useState } from "react";
+import TaskForm from "./components/TaskForm";
+import TaskList from "./components/TaskList";
 
 function App() {
   const [tasks, setTasks] = useState([]);
   const [editingTask, setEditingTask] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterTask, setFilterTask] = useState([]);
+
+  const fetchTasks = async () => {
+      const res = await fetch("http://localhost:5000/api/tasks");
+      const data = await res.json();
+      setTasks(data);
+  };
+
+  const filterdAndSorted = () => {
+  let currentTasks = [...tasks];
+    if(searchTerm){
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      currentTasks = currentTasks.filter(
+        (task) => 
+          task.title.toLowerCase().includes(lowerCaseSearchTerm) || 
+          task.description.toLowerCase().includes(lowerCaseSearchTerm)
+      );
+    }
+    setFilterTask(currentTasks);
+  };
+
+  useEffect(() => {
+    filterdAndSorted();
+  }, [searchTerm, tasks]);
 
   useEffect(() => {
     fetchTasks();
   }, []);
 
-  const fetchTasks = async () => {
-    const response = await fetch('http://localhost:5000/api/tasks');
-    const data = await response.json();
-    setTasks(data);
-  };
-
-  const handleAddTask = async (task) => {
-    const response = await fetch('http://localhost:5000/api/tasks', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(task),
-    });
-    const newTask = await response.json();
-    setTasks([...tasks, newTask]);
-  };
-
-  const handleUpdateTask = async (id, updatedTask) => {
-    const response = await fetch(`http://localhost:5000/api/tasks/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updatedTask),
-    });
-    const updatedTaskData = await response.json();
-    setTasks(tasks.map(task => task.id === id ? updatedTaskData : task));
+  const handleSave = async (task) => {
+    if (task.id) {
+      await fetch(`http://localhost:5000/api/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(task),
+      });
+    } else {
+      await fetch("http://localhost:5000/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(task),
+      });
+    }
     setEditingTask(null);
+    fetchTasks();
   };
 
-  const handleDeleteTask = async (id) => {
+  const handleDelete = async (id) => {
     await fetch(`http://localhost:5000/api/tasks/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
-    setTasks(tasks.filter(task => task.id !== id));
+    fetchTasks();
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Task Manager</h1>
-      <TaskForm 
-        onTaskAdded={handleAddTask} 
-        onTaskUpdated={handleUpdateTask}
-        editingTask={editingTask}
-        setEditingTask={setEditingTask}
-      />
-      <TaskList 
-        tasks={tasks} 
-        onDelete={handleDeleteTask}
+    <div className="container">
+      <h1>📝 Task Manager</h1>
+      <TaskForm onSave={handleSave} editingTask={editingTask} />
+      <div style={{marginTop : 32}}> {/* Using mb-4 for margin, assuming basic CSS or Tailwind */}
+            <input
+                type="text"
+                placeholder="Search tasks..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" // Basic Tailwind-like classes
+            />
+        </div>
+      <TaskList
+        tasks={filterTask}
         onEdit={setEditingTask}
+        onDelete={handleDelete}
       />
     </div>
   );

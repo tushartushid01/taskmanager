@@ -1,18 +1,18 @@
-import TaskItem from './TaskItem';
+import React from "react";
 
-function TaskList({ tasks, onDelete, onEdit }) {
+function TaskList({ tasks, onEdit, onDelete }) {
   return (
-    <div className="space-y-4">
+    <div>
       {tasks.length === 0 ? (
-        <p className="text-gray-500">No tasks found. Add a task to get started!</p>
+        <p>No tasks available.</p>
       ) : (
-        tasks.map(task => (
-          <TaskItem 
-            key={task.id} 
-            task={task} 
-            onDelete={onDelete}
-            onEdit={onEdit}
-          />
+        tasks?.map((task) => (
+          <div key={task.id} style={{ marginBottom: "1rem" }}>
+            <h3>{task.title}</h3>
+            <p>{task.description}</p>
+            <button onClick={() => onEdit(task)} className="edit">Edit</button>
+            <button onClick={() => onDelete(task.id)} className="delete">Delete</button>
+          </div>
         ))
       )}
     </div>
